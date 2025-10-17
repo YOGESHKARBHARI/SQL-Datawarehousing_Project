@@ -1,4 +1,4 @@
--- ==== 6.Drop and Create Tables ============
+-- ==== 6.Drop and Create Tables ===========
 -- ======== 1. crm form ====================
 
 IF OBJECT_ID ('Bronze.crm_cust_info','U') IS NULL 
