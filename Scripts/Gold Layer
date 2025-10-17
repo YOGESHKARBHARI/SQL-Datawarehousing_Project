@@ -1,0 +1,169 @@
+USE DataWarehouse;
+
+-- 23. Combine tables with left join Silver.crm_cust_info and Silver.erp_cust_az12, Silver.erp_loc_al01.
+
+SELECT * FROM Silver.crm_cust_info;
+SELECT * FROM Silver.erp_cust_az12;
+SELECT * FROM Silver.erp_loc_al01;
+
+SELECT
+
+ci.cst_id,
+ci.cst_key,
+ci.cst_firstname,
+ci.cst_lastname,
+ci.cst_material_status,
+ci.cst_gndr,
+ci.cst_create_date,
+ca.bdate,
+ca.gen,
+la.cntry
+
+FROM Silver.crm_cust_info AS ci
+LEFT JOIN Silver.erp_cust_az12 AS ca
+ON ci.cst_key=ca.cid
+LEFT JOIN Silver.erp_loc_al01 AS la
+ON ci.cst_key=la.cid;
+
+-- 24. Find any duplicates are present in Silver.crm_cust_info table.
+
+SELECT cst_id,COUNT(*) FROM (SELECT
+
+ci.cst_id,
+ci.cst_key,
+ci.cst_firstname,
+ci.cst_lastname,
+ci.cst_material_status,
+ci.cst_gndr,
+ci.cst_create_date,
+ca.bdate,
+ca.gen,
+la.cntry
+
+FROM Silver.crm_cust_info AS ci
+LEFT JOIN Silver.erp_cust_az12 AS ca
+ON ci.cst_key=ca.cid
+LEFT JOIN Silver.erp_loc_al01 AS la
+ON ci.cst_key=la.cid
+)t GROUP BY cst_id
+HAVING COUNT(*)>1;
+
+-- 25.In Silver.crm_cust_info table [Master] contains cst_gndr column and Silver.erp_cust_az12  conatins gen column. 
+-- Genearate new_cst_gen column coatains all record from master and if n/a replace with null.
+
+SELECT
+
+ci.cst_id,
+ci.cst_key,
+ci.cst_firstname,
+ci.cst_lastname,
+ci.cst_material_status,
+CASE WHEN (ci.cst_gndr !='N/A') THEN ci.cst_gndr
+ELSE COALESCE (ca.gen,'N/A') END AS new_cst_gndr,
+ci.cst_create_date,
+ca.bdate,
+la.cntry
+
+FROM Silver.crm_cust_info AS ci
+LEFT JOIN Silver.erp_cust_az12 AS ca
+ON ci.cst_key=ca.cid
+LEFT JOIN Silver.erp_loc_al01 AS la
+ON ci.cst_key=la.cid;
+
+-- 26. Renaming all coumns.
+
+SELECT
+
+ci.cst_id AS customer_id,
+ci.cst_key AS customer_key,
+ci.cst_firstname AS customer_firstname,
+ci.cst_lastname AS customer_lastname,
+ci.cst_material_status AS customer_material_status,
+CASE WHEN (ci.cst_gndr !='N/A') THEN ci.cst_gndr
+ELSE COALESCE (ca.gen,'N/A') END AS customer_gender,
+ci.cst_create_date AS customer_crete_date,
+ca.bdate AS customer_birthdate,
+la.cntry AS customer_country
+
+FROM Silver.crm_cust_info AS ci
+LEFT JOIN Silver.erp_cust_az12 AS ca
+ON ci.cst_key=ca.cid
+LEFT JOIN Silver.erp_loc_al01 AS la
+ON ci.cst_key=la.cid;
+
+
+-- 26. Re-arranging all coumns.
+
+SELECT
+
+ci.cst_id AS customer_id,
+ci.cst_key AS customer_key,
+ci.cst_firstname AS customer_firstname,
+ci.cst_lastname AS customer_lastname,
+la.cntry AS customer_country,
+ci.cst_material_status AS customer_material_status,
+CASE WHEN (ci.cst_gndr !='N/A') THEN ci.cst_gndr
+ELSE COALESCE (ca.gen,'N/A') END AS customer_gender,
+ca.bdate AS customer_birthdate,
+ci.cst_create_date AS customer_create_date
+
+FROM Silver.crm_cust_info AS ci
+LEFT JOIN Silver.erp_cust_az12 AS ca
+ON ci.cst_key=ca.cid
+LEFT JOIN Silver.erp_loc_al01 AS la
+ON ci.cst_key=la.cid;
+
+-- 27. Arrange in orderly manner according to customer_id
+
+SELECT
+
+ROW_NUMBER()OVER(ORDER BY ci.cst_id) AS customer_key,
+ci.cst_id AS customer_id,
+ci.cst_key AS customer_number,
+ci.cst_firstname AS customer_firstname,
+ci.cst_lastname AS customer_lastname,
+la.cntry AS customer_country,
+ci.cst_material_status AS customer_material_status,
+CASE WHEN (ci.cst_gndr !='N/A') THEN ci.cst_gndr
+ELSE COALESCE (ca.gen,'N/A') END AS customer_gender,
+ca.bdate AS customer_birthdate,
+ci.cst_create_date AS customer_create_date
+
+FROM Silver.crm_cust_info AS ci
+LEFT JOIN Silver.erp_cust_az12 AS ca
+ON ci.cst_key=ca.cid
+LEFT JOIN Silver.erp_loc_al01 AS la
+ON ci.cst_key=la.cid;
+
+
+-- 28.Create View Gold.dim_customers
+
+CREATE VIEW Gold.dim_customers AS 
+
+SELECT
+
+ROW_NUMBER()OVER(ORDER BY ci.cst_id) AS customer_key,
+ci.cst_id AS customer_id,
+ci.cst_key AS customer_number,
+ci.cst_firstname AS customer_firstname,
+ci.cst_lastname AS customer_lastname,
+la.cntry AS customer_country,
+ci.cst_material_status AS customer_material_status,
+CASE WHEN (ci.cst_gndr !='N/A') THEN ci.cst_gndr
+ELSE COALESCE (ca.gen,'N/A') END AS customer_gender,
+ca.bdate AS customer_birthdate,
+ci.cst_create_date AS customer_create_date
+
+FROM Silver.crm_cust_info AS ci
+LEFT JOIN Silver.erp_cust_az12 AS ca
+ON ci.cst_key=ca.cid
+LEFT JOIN Silver.erp_loc_al01 AS la
+ON ci.cst_key=la.cid;
+
+-- 28. Quality check for Gold Table.
+
+SELECT * FROM Gold.dim_customers;
+
+-- ========================================================================================================
+
+
